@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+<head>
+  <!-- Browser doesn't allow local files (CORS policy). Use a webserver! -->
+  <link rel=import href=auto-store.html>
+  <title>Simple Example</title>
+</head>
+
+
+<body>
+  <auto-store id=auto>
+    <img src=logo.svg width=64 height=64 alt='crappy logo'>
+    <br>
+    (extremely crappy logo)
+    <br>
+    <input placeholder=Name?>
+    <br>
+    <div id=name></div>
+  </auto-store>
+
+
+  <script type=module>
+    async function init() {
+      const forDom = new Promise(resolve => 
+        document.addEventListener('DOMContentLoaded', ev => resolve()))
+      await forDom 
+
+      await new Promise(res => setTimeout(res, 1000))
+      console.log('waited 1s for AutoState')
+      
+      const auto = document.querySelector('#auto')
+      auto.init({
+        actions: {},
+        mutations: { setName: function(name) { this.name = name }, },
+        state: { name: 'original' },
+      })
+
+      const nameDiv = document.querySelector('#name')
+      console.log('store', nameDiv.store)
+      nameDiv.store.addDependency('name', value => nameDiv.innerHTML = value)
+
+      console.log('store.state.name', nameDiv.store.state.name)
+      nameDiv.store.commit.setName('test')
+      console.log('store.state.name', nameDiv.store.state.name)
+
+    }
+    init()
+  </script>
+
+</body>

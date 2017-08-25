@@ -1,48 +1,72 @@
-## <auto-state>: a web component with Flux-style reactive state management
+## <auto-store>: a web component with Flux-style reactive state management
 
-The state managed by <auto-state> is a **view state**. This is an abstraction of the view as naked data. It should only contain data immediately needed by and adapted for the view. As seen in the MVVM pattern this is the view-model. Additionally <auto-state> adopts a **Flux-style data flow**. Let me show this in a small example: a login button of a single page application:
+The state managed by <auto-store> is a **view state**. This is an abstraction of the view as naked data. It should only contain data immediately needed by and adapted for the view. As seen in the MVVM pattern this is the view-model. Additionally <auto-store> adopts a **Flux-style data flow** with an idea taken from **Vuex**: commiting mutations.
 
-1. The login button click handler invokes `auto.dispatch.login()`, i. e. the element **dispatches** the action `login()`.
-1. An action is an **asynchronous** function. Some time later, like after a successful network request, it wants to update the login name. It invokes a mutation `auto.commit.setName(name)`, i. e. the action **commits** the mutation `setName()` to the state.
-1. The `setName()` mutation is **synchronous**. It **updates** the state immediately.
-1. All dependencies on `auto.state.name` get run and update the elements displaying this part of the state.
+```
+        . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+        :                                                             :
+        :                                                             :
+        :       dispatch         +----------+        commit           V
+        +----------------------->|  Action  |-------------------------+
+        |    (asynchronously)    +----------+     (synchronously)     |
+        |                                                             |
+        |                                                             V
+  +-----------+                                                +------------+
+  |  Element  |                                                |  Mutation  |
+  +-----------+                                                +------------+
+        ^                                                             |
+        |       render by         +---------+     update by direct    |
+        +-------------------------|  State  |<------------------------+
+            dependency callback   +---------+    assigning to store
+```
+
+Let me concretise this in a small example: a login button of a single page application:
+
+1. The login button click handler invokes `dispatch.login()`, i. e. the element **dispatches** the action `login()`.
+1. An action is an **asynchronous** function. Some time later, like after a successful network request, it wants to update the login name. It invokes a mutation `commit.setName(name)`, i. e. the action **commits** the mutation `setName()` to the store.
+1. The `setName()` mutation is **synchronous**. It **updates** the state immediately
+by assigning like this: `state.name = name`. This is the only place where the
+state in the store is allowed to be mutated.
+1. All dependencies on `state.name` get run. These dependencies modify the
+elements showing the name, in other words, they render the element.
 
 For this data flow to work reliably, some rules must be held:
 
 - Do not modify state directly.
-- Initialise <auto-state> as early as possible.
-- Elements are reactively updated only after `addDependency()`.
-- Avoid to dispatch actions or to commit mutations inside dependencies. This can lead to infinite loops.
+- Initialise <auto-store> as early as possible.
+- Elements are reactively rendered only after `addDependency()`.
+- Avoid to dispatch actions or to commit mutations inside dependencies. This can lead to infinite loops. It is fine to commit mutations directly from elements shown by the dotted line at the top of the diagram.
 
-It is fine to commit mutations directly from event handlers.
+An important difference to Flux, Vuex and other state management implementations is that actions and mutations aren't dispatched or committed identified by a string parameter, like this: `dispatch('login')`, but **directly by a function**, like this: `dispatch.login()`.
 
-An important difference to Flux and other state management implementations is that actions and mutations aren't dispatched or committed identified by a string parameter, like this: `dispatch('login')`, but **directly by a function**, like this: `dispatch.login()`.
-
-The <auto-state> only does binding and two-way binding by JavaScript code. To reduce boiler-plate use the <auto-binder> web component (planned).
+Please have a look at `example-simple.html` and `example-deep.html`.
 
 ## API
 
-<auto-state> is a container element which manages state for its child elements. The state management is initialised with `init(actions, mutations, initialState)`:
+<auto-store> is a container element which manages state for its child elements. Binding by attributes or markup is not provided (do one thing well). Other web components shall provide declarative binding.
 
-- `actions` and `mutations` are named function collections (i. e. an object with functions as values or an array of named functions). An action is an asynchronous function which commits mutations by invoking it on the `this` object. Exceptions in actions are caught and pushed to `state.actionErrors`. A mutation is a synchronous function which writes directly to the state tree in the `this` object. This is the only allowed write access to the state (not enforced yet).
-- `initialState` is the initial state tree for <auto-state>. 
+The state management is initialised with `auto.init({ actions, mutations, state })`:
 
-All children of <auto-state> get a read-only JavaScript property `auto` with these sub-properties:
+- `actions` and `mutations` are objects with non-arrow functions as values. An action is an asynchronous function which commits mutations by invoking on the `this` object. Exceptions in actions are caught and pushed to `state.actionErrors`. A mutation is a synchronous function which writes directly to the state tree in the `this` object. This is the only allowed place where one change the state. This is enforced if the state-readonly
+attribute <auto-store> is set.
+- `initial` is the initial state tree for <auto-store>. 
 
-- `auto.dispatch` for all available actions;
-- `auto.commit` for all available mutations;
-- `auto.state` for the state tree; and
-- `auto.addDependency(path, callback)` to register a state dependency.
+All children of <auto-store> get a read-only JavaScript property `store` (or a different name if set with <auto-store store-name=name>) with these sub-properties:
 
-In an event handler invoke `event.target.auto.dispatch.login()` or `event.target.auto.commit.setName(name)`, for example. To receive state updates, invoke `input.auto.addDependency('name', val => input.value = val)`, for example.
+- `dispatch` for all available actions;
+- `commit` for all available mutations;
+- `state` for the state tree; and
+- `addDependency(path, callback)` to register a dependency on state change.
+
+In an event handler invoke `event.target.store.dispatch.login()` or `event.target.store.commit.setName(name)`, for example. To receive store updates, invoke `input.store.addDependency('name', val => input.value = val)`, for example.
 
 ## Todos
 
 This web component is **not yet even alpha** and in a **very early state of implementation**. Todos:
 
-1. Wrap the actions and mutations
-1. Implement addDependency
+1. Implement dependency callback with observe tree
 1. Inject dynamically added elements
 1. Expand and style the example
 1. Write tests
 1. Provide a second, more complex example
+1. Implement store-readonly

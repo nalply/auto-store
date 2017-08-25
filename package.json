@@ -1,16 +1,18 @@
 {
-  "name": "auto-state",
+  "name": "auto-store",
   "version": "0.0.1",
-  "description": "Flux-style state management webcomponent for all elements contained in it",
-  "main": "src/auto-state.html",
+  "description": "Flux-style state management web component with reactivity",
+  "main": "src/auto-store.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "state",
-    "management",
-    "flux",
-    "webcomponent"
+    "data store",
+    "state management",
+    "flux pattern",
+    "web component",
+    "webcomponent",
+    "reactivity"
   ],
   "author": "Daniel Ly",
   "license": "ISC"

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+<!-- very crappy and ugly logo but just to get started -->
+<defs>
+  <marker id='head' orient="auto"
+    markerWidth='4' markerHeight='4'
+    refX='2' refY='2'>
+    <circle cx="2" cy="2" r="1" stroke="none" fill="white" />
+  </marker>
+</defs>
+<rect width='400' height='400' />
+<rect width='400' height='150' y='250' fill='#a06' />
+<path marker-end='url(#head)' stroke-width='30' fill='none' stroke='white'  
+  d='M105,60L30,200L100,320'/>
+<path marker-end='url(#head)' stroke-width='30' fill='none' stroke='white'  
+  d='M230,80L170,320'/>
+<path marker-end='url(#head)' stroke-width='30' fill='none' stroke='white'  
+  d='M170,320L230,80'/>
+<path marker-end='url(#head)' stroke-width='30' fill='none' stroke='white'  
+  d='M295,340L370,200L300,80'/>
+</svg>

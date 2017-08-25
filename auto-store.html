@@ -1,0 +1,175 @@
+<script type=module>
+
+import { isES6Identifier } from './es6-identifier.js'
+
+
+class AutoStore extends HTMLElement {
+  constructor() {
+    super()
+
+    if (this.stateReadonly) console.warn(
+      '<auto-state state-readonly> not yet implemented')
+
+    this._dependencies = {}
+    this._store = {}
+  }
+
+
+  // --- web component lifecycle hooks ---
+
+  connectedCallback() {
+    const mutationOptions = { attributes: 1, childList: 1, subtree: 1 }
+    new MutationObserver(domMutations => {
+      console.debug('<auto-state> DOM mutations', domMutations)
+      for (const mut of domMutations) {
+        if (mut.type === 'childList') {
+
+          // iterate over addedNodes and add dispatch
+          // iterate over removedNodes and remove dispatch
+          // use injectStore()
+
+        }
+      }
+    }).observe(this, mutationOptions)
+
+    injectStore(this, this.children, 'recursive')
+    console.debug('<auto-state> injectStore() done')
+  }
+
+
+  static get observedAttributes() {
+    return [ 'store-name', 'store-readonly' ]
+  }
+
+
+  attributeChangedCallback(attributeName, oldValue) {
+    if (this.attributeChangedCallback.running) return
+    this.attributeChangedCallback.running = true
+
+    this.setAttribute(attributeName, oldValue)
+    console.warn('<auto-state> attribute change reverted', attributeName)
+
+    delete this.attributeChangedCallback.running
+  }
+
+
+  // --- instance properties ---
+
+  get store() {
+    return this._store
+  }
+
+
+  get storeName() { 
+    return this.getAttribute('store-name') || 'store' 
+  }
+
+
+  get stateReadonly() {
+    return this.hasAttribute('state-readonly')
+  }
+
+
+  // --- instance methods ---
+
+  init({ actions, mutations, state }) {
+    actions = actions || {}
+    mutations = mutations || {}
+
+    if (mutations.pushActionError) throw new TypeError(
+      'do not define mutation.pushActionError')
+
+    this._state = Object.assign({}, state || {})
+    state = readonlyRef(this._state)
+
+    const commit = wrapFunctions(mutations, bind(this._state), 'mutations')
+    const dispatch = wrapFunctions(actions, bindCatch(commit), 'actions')
+    this._store = Object.freeze({ commit, dispatch, state })
+
+    console.debug('<auto-state> store initialised')
+  }
+
+
+  addDependency(element, path, dependency) {
+    if (!this.contains(element)) throw new TypeError(
+      'element not a descendant of <auto-store>')
+
+    const ids = path.split('.')
+    if (!ids.every(id => isES6Identifier(id))) throw new TypeError(
+      'path not a dotted identifier chain')
+    
+    if ('function' !== typeof dependency) throw new TypeError(
+      'dependency not a function')
+    
+    if (!this._dependencies[path]) this._dependencies[path] = []
+    this._dependencies[path].push(dependency)
+  }
+}
+
+
+// --- Private helpers ---
+
+function wrapFunctions(funcs, map, name) {
+  const funcsOnlyNonArrowFunctions = 'object' === typeof funcs
+    && Object.values(funcs).every(
+      f => 'function' === typeof f && f.toString().startsWith('function')
+    )
+  if (!funcsOnlyNonArrowFunctions) throw new TypeError(
+    name + ' not an object with non-arrow functions only')
+
+  const mapped = {}
+  for (const f in funcs) mapped[f] = map(funcs[f])
+  return Object.freeze(mapped)
+}
+
+
+function bind(thisArg) { return f => f.bind(thisArg) }
+
+
+function bindCatch(thisArg) {
+  return f => {
+    try {
+      f.apply(thisArg)
+    }
+    catch (err) {
+      this.pushActionError(err, f)
+      console.warn('<auto-state> uncaught error in action ' + f.name, err)
+    }
+  }
+}
+
+ 
+// TODO: Create a deep readonly reference of the object when state-readonly
+function readonlyRef(obj) {
+  return obj
+}
+
+
+function injectStore(auto, children, recursive) {
+  for (const child of children) {
+    if (child.nodeType != Node.ELEMENT_NODE) continue
+
+    const property = auto.storeName
+    if (property in child) {
+      console.warn('<auto-state>', property, 'already defined in element',
+         child, ', injection stopped')
+      return
+    }
+
+    const get = () => Object.freeze(Object.assign({}, auto.store, {
+      addDependency: auto.addDependency.bind(auto, child)
+    }))
+    const descriptor = { get, configurable: true,  enumerable: true }
+    Object.defineProperty(child, property, descriptor)
+  
+    if (recursive) injectStore(child, recursive)
+  }
+}
+
+
+// --- Register the web component ---
+
+window.customElements.define('auto-store', AutoStore)
+console.debug('<auto-store> registered as a web component')
+
+</script>
