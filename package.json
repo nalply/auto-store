@@ -1,8 +1,8 @@
 {
   "name": "auto-store",
   "version": "0.0.1",
-  "description": "Flux-style state management web component with reactivity",
-  "main": "src/auto-store.html",
+  "description": "web component with Flux-style reactive state management",
+  "main": "auto-store.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,5 +15,8 @@
     "reactivity"
   ],
   "author": "Daniel Ly",
-  "license": "ISC"
+  "license": "ISC",
+  "eslintConfig": {
+    "parserOptions": { "sourceType": "module" }
+  }
 }

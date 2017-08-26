@@ -1,7 +1,7 @@
 <script type=module>
 
 import { isES6Identifier } from './es6-identifier.js'
-
+import { observeTree } from './observe-tree.js'
 
 class AutoStore extends HTMLElement {
   constructor() {
@@ -10,8 +10,7 @@ class AutoStore extends HTMLElement {
     if (this.stateReadonly) console.warn(
       '<auto-state state-readonly> not yet implemented')
 
-    this._dependencies = {}
-    this._store = {}
+    this._internalData = { store: {}, dependencies: {}, }
   }
 
 
@@ -56,7 +55,7 @@ class AutoStore extends HTMLElement {
   // --- instance properties ---
 
   get store() {
-    return this._store
+    return this._internalData.store
   }
 
 
@@ -79,13 +78,16 @@ class AutoStore extends HTMLElement {
     if (mutations.pushActionError) throw new TypeError(
       'do not define mutation.pushActionError')
 
-    this._state = Object.assign({}, state || {})
-    state = readonlyRef(this._state)
+    const nakedState = Object.assign({}, state || {})
+    const readonlyState = readonlyRef(nakedState)
+    const callbackDependencies = this.callbackDependencies.bind(this)
+    const observedState = observeTree(nakedState, callbackDependencies)
 
-    const commit = wrapFunctions(mutations, bind(this._state), 'mutations')
+    const commit = wrapFunctions(mutations, bind(observedState), 'mutations')
     const dispatch = wrapFunctions(actions, bindCatch(commit), 'actions')
-    this._store = Object.freeze({ commit, dispatch, state })
+    const store = Object.freeze({ commit, dispatch, state: readonlyState })
 
+    Object.assign(this._internalData, { nakedState, observedState, store})
     console.debug('<auto-state> store initialised')
   }
 
@@ -97,12 +99,24 @@ class AutoStore extends HTMLElement {
     const ids = path.split('.')
     if (!ids.every(id => isES6Identifier(id))) throw new TypeError(
       'path not a dotted identifier chain')
+    path = '.' + path
     
     if ('function' !== typeof dependency) throw new TypeError(
       'dependency not a function')
     
-    if (!this._dependencies[path]) this._dependencies[path] = []
-    this._dependencies[path].push(dependency)
+    const dependencies = this._internalData.dependencies
+    if (!dependencies[path]) dependencies[path] = []
+    dependencies[path].push(dependency)
+  }
+
+
+  callbackDependencies(change) {
+    console.log('callbackDependencies', change)
+
+    const dependencies = this._internalData.dependencies
+    if (dependencies[change.path])
+      for (const dependency of dependencies[change.path])
+        dependency(change.newValue)
   }
 }
 

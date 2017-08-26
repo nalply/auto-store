@@ -13,36 +13,51 @@
     <br>
     (extremely crappy logo)
     <br>
-    <input placeholder=Name?>
+    <input id=nameInput placeholder=Name?>
     <br>
-    <div id=name></div>
+    <div id=nameDiv></div>
   </auto-store>
 
 
   <script type=module>
-    async function init() {
-      const forDom = new Promise(resolve => 
-        document.addEventListener('DOMContentLoaded', ev => resolve()))
-      await forDom 
+    import { observeTree } from './observe-tree.js'
 
-      await new Promise(res => setTimeout(res, 1000))
-      console.log('waited 1s for AutoState')
+    const select = document.querySelector.bind(document)
+    async function init() {
+      await new Promise(resolve => select('[href="auto-store.html"]')
+        .addEventListener('load', ev => resolve()))
       
-      const auto = document.querySelector('#auto')
+      const auto = select('#auto')
       auto.init({
         actions: {},
         mutations: { setName: function(name) { this.name = name }, },
         state: { name: 'original' },
       })
 
-      const nameDiv = document.querySelector('#name')
-      console.log('store', nameDiv.store)
+      const nameDiv = document.querySelector('#nameDiv')
+      console.log('example-simple: store', nameDiv.store)
       nameDiv.store.addDependency('name', value => nameDiv.innerHTML = value)
 
-      console.log('store.state.name', nameDiv.store.state.name)
+      console.log('example-simple: store.state.name', nameDiv.store.state.name)
       nameDiv.store.commit.setName('test')
-      console.log('store.state.name', nameDiv.store.state.name)
+      console.log('example-simple: store.state.name', nameDiv.store.state.name)
 
+      const nameInput = document.querySelector('#nameInput')
+      nameInput.oninput = ev => ev.target.store.commit.setName(ev.target.value)
+
+      /*
+      const observed = observeTree({}, change => console.log('observeTree', change))
+      observed.a = 'a'
+      observed.a = 'a'
+      observed.a = 'a2'
+      delete observed.a
+      observed.b = { z: 'z' }
+      observed.b.arr = [0, 1, 2, 3]
+      observed.b.arr.splice(1, 0, 'splice')
+      observed.b.arr.splice(0, 1, 'splice with delete')
+      observed.b.arr.pop()
+      observed.b.arr.sort()
+      */
     }
     init()
   </script>
