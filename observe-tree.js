@@ -1,7 +1,3 @@
-
-'use strict'
-
-
 function throwTypeError(what) {
   throw new TypeError(what + ' disallowed by observe-tree.js')
 }
@@ -38,7 +34,7 @@ function disallowedValue(value) {
 export function observeTree(obj, callback, prefixPath) {
   prefixPath = prefixPath || ''
 
-  const observeHandler = {
+  const observeHandler =  {
     setPrototypeOf() {
       throwTypeError('setting prototype') 
     },

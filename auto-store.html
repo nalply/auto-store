@@ -10,7 +10,8 @@ class AutoStore extends HTMLElement {
     if (this.stateReadonly) console.warn(
       '<auto-state state-readonly> not yet implemented')
 
-    this._internalData = { store: {}, dependencies: {}, }
+    // nakedState, observedState and store are set in init()
+    this._internalData = { dependencies: {}, }
   }
 
 
@@ -32,7 +33,6 @@ class AutoStore extends HTMLElement {
     }).observe(this, mutationOptions)
 
     injectStore(this, this.children, 'recursive')
-    console.debug('<auto-state> injectStore() done')
   }
 
 
@@ -45,6 +45,9 @@ class AutoStore extends HTMLElement {
     if (this.attributeChangedCallback.running) return
     this.attributeChangedCallback.running = true
 
+    // TODO: is there another way to prevent programmatic attribute changes?
+    // It doesn't make sense to change the attributes store-name and
+    // store-readonly after their declaration in HTML.
     this.setAttribute(attributeName, oldValue)
     console.warn('<auto-state> attribute change reverted', attributeName)
 
@@ -72,17 +75,13 @@ class AutoStore extends HTMLElement {
   // --- instance methods ---
 
   init({ actions, mutations, state }) {
-    actions = actions || {}
-    mutations = mutations || {}
-
-    if (mutations.pushActionError) throw new TypeError(
-      'do not define mutation.pushActionError')
-
-    const nakedState = Object.assign({}, state || {})
-    const readonlyState = readonlyRef(nakedState)
+    const nakedState = Object.assign({}, state)
     const callbackDependencies = this.callbackDependencies.bind(this)
     const observedState = observeTree(nakedState, callbackDependencies)
+    const readonlyState = readonlyRef(nakedState)
 
+    // TODO: refactor to wrapMutations() and wrapActions(), mutations, too
+    mutations = Object.assign({}, { uncaughtActionError }, mutations)
     const commit = wrapFunctions(mutations, bind(observedState), 'mutations')
     const dispatch = wrapFunctions(actions, bindCatch(commit), 'actions')
     const store = Object.freeze({ commit, dispatch, state: readonlyState })
@@ -140,16 +139,20 @@ function wrapFunctions(funcs, map, name) {
 function bind(thisArg) { return f => f.bind(thisArg) }
 
 
-function bindCatch(thisArg) {
+function bindCatch(commit) {
   return f => {
     try {
-      f.apply(thisArg)
+      f.apply(commit)
     }
     catch (err) {
-      this.pushActionError(err, f)
-      console.warn('<auto-state> uncaught error in action ' + f.name, err)
+      commit.uncaughtActionError(err, f)
     }
   }
+}
+
+
+function uncaughtActionError(err, f) {
+  console.warn('<auto-state> uncaught error in action ' + f.name, err)
 }
 
  
@@ -167,7 +170,7 @@ function injectStore(auto, children, recursive) {
     if (property in child) {
       console.warn('<auto-state>', property, 'already defined in element',
          child, ', injection stopped')
-      return
+      return // TODO use counter instead to prevent several warnings
     }
 
     const get = () => Object.freeze(Object.assign({}, auto.store, {
@@ -184,6 +187,5 @@ function injectStore(auto, children, recursive) {
 // --- Register the web component ---
 
 window.customElements.define('auto-store', AutoStore)
-console.debug('<auto-store> registered as a web component')
 
 </script>
