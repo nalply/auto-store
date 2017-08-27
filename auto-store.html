@@ -1,5 +1,7 @@
 <script type=module>
 
+//@flow
+
 import { isES6Identifier } from './es6-identifier.js'
 import { observeTree } from './observe-tree.js'
 
@@ -87,7 +89,6 @@ class AutoStore extends HTMLElement {
     const store = Object.freeze({ commit, dispatch, state: readonlyState })
 
     Object.assign(this._internalData, { nakedState, observedState, store})
-    console.debug('<auto-state> store initialised')
   }
 
 
@@ -110,8 +111,6 @@ class AutoStore extends HTMLElement {
 
 
   callbackDependencies(change) {
-    console.log('callbackDependencies', change)
-
     const dependencies = this._internalData.dependencies
     if (dependencies[change.path])
       for (const dependency of dependencies[change.path])

@@ -15,7 +15,7 @@ module.exports = {
     semi: [  "error", "never" ],
     'linebreak-style': [ "error", "unix" ],
     'comma-dangle': 0,
-    'no-console': 0,
+    'no-console': 2,
     'space-before-function-paren': 0,
     'no-multiple-empty-lines': 0,
     'no-multi-spaces': 0,

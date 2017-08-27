@@ -1,3 +1,5 @@
+//@flow
+
 function throwTypeError(what) {
   throw new TypeError(what + ' disallowed by observe-tree.js')
 }
@@ -31,10 +33,23 @@ function disallowedValue(value) {
 }
 
 
-export function observeTree(obj, callback, prefixPath) {
-  prefixPath = prefixPath || ''
+/*::
+  type PlainObject = { [string]: mixed }
+  type ChangeRecord = { 
+       type: 'create' | 'replace' | 'delete', 
+       path: string, 
+       newValue?: mixed, 
+       oldValue?: mixed 
+     }
+*/
 
-  const observeHandler =  {
+
+export function observeTree(
+  obj        /*: PlainObject */, 
+  callback   /*: (ChangeRecord) => void */, 
+  prefixPath /*: string */ = '',
+) {
+  const observeHandler = {
     setPrototypeOf() {
       throwTypeError('setting prototype') 
     },
@@ -68,5 +83,7 @@ export function observeTree(obj, callback, prefixPath) {
     },
   }
   
-  return new Proxy(obj, observeHandler)
+  return new Proxy(obj, 
+    //$FlowFixMe
+    observeHandler)
 }
